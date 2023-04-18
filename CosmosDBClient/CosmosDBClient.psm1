@@ -1,6 +1,7 @@
 function Get-CosmosAuthHeaders{
     param(
-        [string]$PartitionKey
+        [string]$PartitionKey,
+        [string]$ContinuationToken = ""
     )
 
     $authscope = "https://cosmos.azure.com"
@@ -14,6 +15,8 @@ function Get-CosmosAuthHeaders{
         "x-ms-date" = (Get-Date -Format r).ToString()
         "x-ms-documentdb-isquery" = "True"
         "x-ms-documentdb-query-enablecrosspartition" = "True"
+        #"x-ms-max-item-count" = 100
+        "x-ms-continuation" = $ContinuationToken
     }
     if ($PartitionKey)
     {
@@ -32,14 +35,28 @@ function Get-CosmosQueryResults{
 
     $CosmosAccountEndpoint = "https://${CosmosDBAccount}.documents.azure.com"
     $uri = "${CosmosAccountEndpoint}/dbs/$DBName/colls/$ContainerName/docs"
-    $headers = Get-CosmosAuthHeaders
     $queryObj = @{
         "query" = $Query
         "parameters" = @()
     }
     $body = $queryObj | ConvertTo-Json
-    $result = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $body
-    return $result
+    $continuationToken = ""
+    $first = $true
+    $resultCollector = [System.Collections.Generic.List[object]]::new()
+
+    do {
+        $first = $false
+        $headers = Get-CosmosAuthHeaders -ContinuationToken $continuationToken
+        $result = Invoke-WebRequest -Method Post -Uri $uri -Headers $headers -Body $body
+        if ($result.StatusCode -gt 300){
+            throw "Status code ${result.StatusCode}"
+        }
+        $docs = $result.Content | ConvertFrom-Json
+        $resultCollector.AddRange($docs.Documents)
+        $continuationToken = $result.Headers['x-ms-continuation']
+    } while ($continuationToken -or $first)
+
+    return $resultCollector
 }
 
 function Invoke-CosmosStoredProcedure{
