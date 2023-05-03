@@ -43,18 +43,30 @@ function Get-CosmosQueryResults{
     $continuationToken = ""
     $first = $true
     $resultCollector = [System.Collections.Generic.List[object]]::new()
+    $totalRUs = 0
 
     do {
-        $first = $false
         $headers = Get-CosmosAuthHeaders -ContinuationToken $continuationToken
-        $result = Invoke-WebRequest -Method Post -Uri $uri -Headers $headers -Body $body
-        if ($result.StatusCode -gt 300){
+        $result = Invoke-WebRequest -Method Post -Uri $uri -Headers $headers -Body $body -SkipHttpErrorCheck
+        if ($result.StatusCode -eq 429){
+            Write-Host "Request throttled, waiting for retry"
+            Start-Sleep -Seconds 5.0
+        }
+        elseif ($result.StatusCode -gt 300){
             throw "Status code ${result.StatusCode}"
         }
-        $docs = $result.Content | ConvertFrom-Json
-        $resultCollector.AddRange($docs.Documents)
-        $continuationToken = $result.Headers['x-ms-continuation']
+        else{
+            $first = $false
+            $docs = $result.Content | ConvertFrom-Json
+            $resultCollector.AddRange($docs.Documents)
+            $continuationToken = $result.Headers['x-ms-continuation']
+            $requestRUs = [double]::Parse($result.Headers['x-ms-request-charge'])
+            Write-Host "This request charge: $requestRUs"
+            $totalRUs = $totalRUs + $requestRUs
+        }
     } while ($continuationToken -or $first)
+
+    Write-Host "Total RU charge: $totalRUs"
 
     return $resultCollector
 }

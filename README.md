@@ -10,8 +10,16 @@ This tool allows querying Cosmos DB using AAD sign on. You must set up RBAC for 
 
 ## Usage
 
+Run query:
+
 ```
 Connect-AzAccount -TenantId <your tenant id here>
 Import-Module <path>\CosmosDBClient\CosmosDBClient.psm1
 Get-CosmosQueryResults -CosmosDBAccount 'mycosmosaccount' -DBName 'mydb' -ContainerName 'customers' -Query "select * from customers c where c.accountnumber = '123'"
+```
+
+Execute stored procedure:
+
+```
+Invoke-CosmosStoredProcedure -CosmosDBAccount 'mycosmosaccount' -DBName 'mydb' -ContainerName 'customers' -StoredProcedureId 'bulkDelete' -StoredProcedureParameters "select * from customers" -PartitionKey 'mypartition'
 ```
