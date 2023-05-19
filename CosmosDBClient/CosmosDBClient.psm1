@@ -1,7 +1,8 @@
 function Get-CosmosAuthHeaders{
     param(
         [string]$PartitionKey,
-        [string]$ContinuationToken = ""
+        [string]$ContinuationToken = "",
+        [switch]$Replace
     )
 
     $authscope = "https://cosmos.azure.com"
@@ -10,19 +11,43 @@ function Get-CosmosAuthHeaders{
     $headers = @{
         "Authorization" = $authplain
         "x-ms-version" = "2018-12-31"
-        "Content-Type" = "application/query+json"
         "Accept" = "application/json"
         "x-ms-date" = (Get-Date -Format r).ToString()
-        "x-ms-documentdb-isquery" = "True"
         "x-ms-documentdb-query-enablecrosspartition" = "True"
-        #"x-ms-max-item-count" = 100
         "x-ms-continuation" = $ContinuationToken
     }
     if ($PartitionKey)
     {
         $headers.Add("x-ms-documentdb-partitionkey","[`"$PartitionKey`"]")
     }
+    if ($Replace)
+    {
+        $headers.Add("Content-Type", "application/json_patch+json")
+    }
+    else
+    {
+        $headers.Add("Content-Type", "application/query+json")
+        $headers.Add("x-ms-documentdb-isquery", "True")
+    }
     return $headers
+}
+
+function Set-CosmosDocument{
+    param(
+        [string]$CosmosDBAccount,
+        [string]$DBName,
+        [string]$ContainerName,
+        [string]$PartitionKey,
+        [string]$DocumentId,
+        [object]$Content
+    )
+
+    $CosmosAccountEndpoint = "https://${CosmosDBAccount}.documents.azure.com"
+    $uri = "${CosmosAccountEndpoint}/dbs/$DBName/colls/$ContainerName/docs/$DocumentId"
+    $body = $Content | ConvertTo-Json -Depth 100
+    $headers = Get-CosmosAuthHeaders -PartitionKey $PartitionKey -Replace
+    $result = Invoke-RestMethod -Method Put -Headers $headers -Uri $uri -Body $body
+    return $result
 }
 
 function Get-CosmosQueryResults{
@@ -98,3 +123,4 @@ function Invoke-CosmosStoredProcedure{
 
 Export-ModuleMember -Function Get-CosmosQueryResults
 Export-ModuleMember -Function Invoke-CosmosStoredProcedure
+Export-ModuleMember -Function Set-CosmosDocument

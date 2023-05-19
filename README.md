@@ -21,5 +21,11 @@ Get-CosmosQueryResults -CosmosDBAccount 'mycosmosaccount' -DBName 'mydb' -Contai
 Execute stored procedure:
 
 ```
-Invoke-CosmosStoredProcedure -CosmosDBAccount 'mycosmosaccount' -DBName 'mydb' -ContainerName 'customers' -StoredProcedureId 'bulkDelete' -StoredProcedureParameters "select * from customers" -PartitionKey 'mypartition'
+Invoke-CosmosStoredProcedure -CosmosDBAccount 'mycosmosaccount' -DBName 'mydb' -ContainerName 'customers' -PartitionKey 'mypartition' -StoredProcedureId 'bulkDelete' -StoredProcedureParameters "select * from customers"
+```
+
+Update a document:
+
+```
+Set-CosmosDocument -CosmosDBAccount 'mycosmosaccount' -DBName 'mydb' -ContainerName 'customers' -PartitionKey 'mypartition' -DocumentId '123' -Content @{ id = '123'; firstName = 'Joe'; lastName = 'Normal' }
 ```
