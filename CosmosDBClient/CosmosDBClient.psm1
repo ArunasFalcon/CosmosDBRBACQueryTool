@@ -78,7 +78,10 @@ function Get-CosmosQueryResults{
             Start-Sleep -Seconds 5.0
         }
         elseif ($result.StatusCode -gt 300){
-            throw "Status code ${result.StatusCode}"
+            $statusCode = $result.StatusCode
+            $message = $result.Content -replace "`r",'' -replace "`n",''
+            Write-Warning $message
+            throw "Status code $statusCode"
         }
         else{
             $first = $false
