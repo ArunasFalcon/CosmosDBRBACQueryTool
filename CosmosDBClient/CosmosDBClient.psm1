@@ -50,6 +50,26 @@ function Set-CosmosDocument{
     return $result
 }
 
+function Get-CosmosCollectionMetadata{
+    param(
+        [string]$CosmosDBAccount,
+        [string]$DBName,
+        [string]$ContainerName
+    )
+
+    $CosmosAccountEndpoint = "https://${CosmosDBAccount}.documents.azure.com"
+    if ($null -ne $ContainerName){
+        $uri = "${CosmosAccountEndpoint}/dbs/$DBName/colls/$ContainerName"
+    }
+    else{
+        $uri = "${CosmosAccountEndpoint}/dbs/$DBName/colls"
+    }
+
+    $headers = Get-CosmosAuthHeaders
+    $result = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+    return $result
+}
+
 function Get-CosmosQueryResults{
     param(
         [string]$CosmosDBAccount,
@@ -127,3 +147,4 @@ function Invoke-CosmosStoredProcedure{
 Export-ModuleMember -Function Get-CosmosQueryResults
 Export-ModuleMember -Function Invoke-CosmosStoredProcedure
 Export-ModuleMember -Function Set-CosmosDocument
+Export-ModuleMember -Function Get-CosmosCollectionMetadata
