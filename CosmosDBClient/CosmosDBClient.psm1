@@ -43,7 +43,17 @@ function Set-CosmosDocument{
     )
 
     $CosmosAccountEndpoint = "https://${CosmosDBAccount}.documents.azure.com"
-    $uri = "${CosmosAccountEndpoint}/dbs/$DBName/colls/$ContainerName/docs/$DocumentId"
+    if ($DBName -and $ContainerName -and $DocumentId){
+        $uri = "${CosmosAccountEndpoint}/dbs/$DBName/colls/$ContainerName/docs/$DocumentId"
+    }
+    elseif ($Content._self){
+        $selflink = $Content._self
+        $uri = "${CosmosAccountEndpoint}/${selflink}"
+    }
+    else {
+        throw "Provide either DBName, ContainerName and DocumentId parameters or make sure the Content parameter has a _self property."
+    }
+    Write-Host $uri
     $body = $Content | ConvertTo-Json -Depth 100
     $headers = Get-CosmosAuthHeaders -PartitionKey $PartitionKey -Replace
     $result = Invoke-RestMethod -Method Put -Headers $headers -Uri $uri -Body $body
